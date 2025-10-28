@@ -49,7 +49,7 @@ def query_llama3_chat(messages: list) -> str:
 # --- Chat History Management ---
 if "messages" not in st.session_state:
     # Llama 3 requires a system prompt for best performance, but for simplicity, we start with the assistant.
-    st.session_state.messages = [{"role": "assistant", "content": "Hello! I am the Llama 3 70B model. How can I help you today?"}]
+    st.session_state.messages = [{"role": "assistant", "content": "Hello! I am GuruBhai. How can I help you today?"}]
 
 # Display chat messages from history
 for message in st.session_state.messages:
