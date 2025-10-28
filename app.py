@@ -3,7 +3,7 @@ import streamlit as st
 from transformers import pipeline
 
 # Option A: Use environment variable for API Key
-HF_TOKEN = os.getenv("HF_API_KEY")
+HF_TOKEN = os.getenv("HUGGINGFACE_API_KEY")
 
 # Option B: Accept API Key from sidebar for development
 with st.sidebar:
