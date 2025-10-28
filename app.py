@@ -6,7 +6,7 @@ st.title("OpenAI Chatbot 🤖")
 
 # Set the OpenAI API key from Streamlit's secrets
 # This is the recommended way to handle API keys and other secrets.
-openai.api_key = st.secrets["openai_api_key"]
+openai.api_key = st.secrets["openai"]
 
 # Initialize chat history in session state if it doesn't exist
 if "messages" not in st.session_state:
