@@ -11,7 +11,7 @@ HF_TOKEN = st.secrets["huggingface"]["api_key"]
 def get_chatbot(token):
     return pipeline(
         "text-generation",
-        model="meta-llama/Meta-Llama-3-70B-Instruct",
+        model="meta-llama/Llama-3.3-70B-Instruct",
         use_auth_token=token
     )
 
