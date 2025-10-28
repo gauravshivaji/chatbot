@@ -7,7 +7,7 @@ st.title("💬 Gemini Chatbot")
 genai.configure(api_key=st.secrets["GOOGLE_API_KEY"])
 
 # Initialize the model
-model = genai.GenerativeModel('gemini-pro
+model = genai.GenerativeModel('gemini-pro')
 
 
 # Initialize chat history
