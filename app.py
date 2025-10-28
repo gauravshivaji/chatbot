@@ -9,8 +9,8 @@ st.set_page_config(
 )
 
 # --- App Title and Description ---
-st.title("🤖 Llama 3 (70B) Chatbot")
-st.caption("Powered by Hugging Face Inference API")
+st.title("🤖gurubhai ka jwab ")
+st.caption("charges extra 20rs")
 
 # --- Hugging Face API Configuration ---
 try:
@@ -65,7 +65,7 @@ if user_prompt := st.chat_input("Ask your question here..."):
         st.markdown(user_prompt)
         
     with st.chat_message("assistant"):
-        with st.spinner("Thinking... (this may take a moment for the 70B model)"):
+        with st.spinner("Thinking... gurubhai soch rha he"):
             # <-- KEY CHANGE 3: Call the new function
             response_content = query_llama3_chat(st.session_state.messages)
             st.markdown(response_content)
