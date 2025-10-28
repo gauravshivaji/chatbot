@@ -13,7 +13,6 @@ st.title("🤖 Llama 3 (70B) Chatbot")
 st.caption("Powered by Hugging Face Inference API")
 
 # --- Hugging Face API Configuration ---
-# Make sure to set your HF_TOKEN in Streamlit secrets
 try:
     HF_TOKEN = st.secrets["huggingface"]["api_key"]
 except (FileNotFoundError, KeyError):
@@ -21,7 +20,7 @@ except (FileNotFoundError, KeyError):
     st.stop()
     
 # Initialize the Inference Client with the 70B model
-MODEL_ID = "meta-llama/Meta-Llama-3-70B-Instruct" # <-- This is the only line changed
+MODEL_ID = "meta-llama/Meta-Llama-3-70B-Instruct"
 try:
     client = InferenceClient(model=MODEL_ID, token=HF_TOKEN)
 except Exception as e:
@@ -29,29 +28,28 @@ except Exception as e:
     st.stop()
 
 
-# --- Function to Query Llama 3 ---
-def query_llama3(prompt: str) -> str:
+# --- Function to Query Llama 3 (Corrected for Conversational Task) ---
+def query_llama3_conversational(messages: list) -> str:
     """
-    Sends a prompt to the Llama 3 model and returns the generated text.
+    Sends the entire conversation history to the Llama 3 model and returns the assistant's reply.
     """
     try:
-        # The correct method is .text_generation()
-        response = client.text_generation(
-            prompt=prompt,
-            max_new_tokens=1024,  # Increased token limit for the larger model
+        # <-- KEY CHANGE 1: Use the .conversational() method
+        response_data = client.conversational(
+            messages=messages, # Pass the list of message dictionaries
+            max_new_tokens=1024,
             do_sample=True,
             temperature=0.7,
             top_p=0.95,
         )
-        # The method directly returns the generated string
-        return response
+        # <-- KEY CHANGE 2: Extract the generated text from the response dictionary
+        # The assistant's reply is in the 'generated_text' key
+        return response_data.get('generated_text', '')
     except Exception as e:
-        # Provide a more user-friendly error message
         st.error(f"An error occurred while generating the response: {e}", icon="🔥")
         return "Sorry, I couldn't process your request. The model might be loading or experiencing high traffic."
 
 # --- Chat History Management ---
-# Initialize session state for messages if it doesn't exist
 if "messages" not in st.session_state:
     st.session_state.messages = [{"role": "assistant", "content": "Hello! I am the Llama 3 70B model. How can I help you today?"}]
 
@@ -61,19 +59,17 @@ for message in st.session_state.messages:
         st.markdown(message["content"])
 
 # --- User Input and Chat Logic ---
-# Accept user input via a chat input box at the bottom
 if user_prompt := st.chat_input("Ask your question here..."):
     # Add user message to chat history
     st.session_state.messages.append({"role": "user", "content": user_prompt})
     
-    # Display user message in the chat message container
     with st.chat_message("user"):
         st.markdown(user_prompt)
         
-    # Display assistant response in chat message container
     with st.chat_message("assistant"):
         with st.spinner("Thinking... (this may take a moment for the 70B model)"):
-            response = query_llama3(user_prompt)
+            # <-- KEY CHANGE 3: Pass the entire session state messages list
+            response = query_llama3_conversational(st.session_state.messages)
             st.markdown(response)
             
     # Add assistant response to chat history
