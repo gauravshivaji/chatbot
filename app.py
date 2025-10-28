@@ -1,63 +1,45 @@
+import os
 import streamlit as st
-from huggingface_hub import InferenceClient
-from huggingface_hub.errors import BadRequestError
+from transformers import pipeline
 
-st.title("💬 Hugging Face Chatbot")
+# Option A: Use environment variable for API Key
+HF_TOKEN = os.getenv("HF_API_KEY")
 
-# Initialize the InferenceClient with your model and token
-try:
-    client = InferenceClient(
-        model="meta-llama/Llama-3-8B-Instruct",
-        token=st.secrets["HUGGINGFACE_API_KEY"]
-    )
-except Exception:
-    st.error("Please provide a valid Hugging Face API key in your secrets.")
+# Option B: Accept API Key from sidebar for development
+with st.sidebar:
+    st.title("🤗 Hugging Face Chatbot")
+    api_key_input = st.text_input("Enter Hugging Face API Key", type="password")
+if api_key_input:
+    HF_TOKEN = api_key_input
+
+st.title("Llama 3 Chatbot (Hugging Face & Streamlit)")
+st.markdown("Talk to Meta-Llama-3-70B-Instruct model via Hugging Face Inference API.")
+
+if not HF_TOKEN:
+    st.warning("Please enter your Hugging Face API key in the sidebar.")
     st.stop()
 
+@st.cache_resource
+def get_pipeline(token):
+    # For hosted inference API, set use_auth_token argument.
+    return pipeline(
+        "text-generation",
+        model="meta-llama/Meta-Llama-3-70B-Instruct",
+        use_auth_token=token
+    )
 
-# Initialize chat history in session state
+chatbot = get_pipeline(HF_TOKEN)
+
 if "messages" not in st.session_state:
-    st.session_state.messages = []
+    st.session_state["messages"] = []
 
-# Display past messages
-for message in st.session_state.messages:
-    with st.chat_message(message["role"]):
-        st.markdown(message["content"])
+prompt = st.text_input("Ask a question:", "")
 
-# Get user input
-if prompt := st.chat_input("What would you like to ask?"):
-    # Add user's message to history and display it
-    st.session_state.messages.append({"role": "user", "content": prompt})
-    with st.chat_message("user"):
-        st.markdown(prompt)
+if st.button("Send") and prompt:
+    st.session_state["messages"].append({"role": "user", "content": prompt})
+    with st.spinner("Thinking..."):
+        response = chatbot(prompt, max_new_tokens=256)[0]['generated_text']
+    st.session_state["messages"].append({"role": "assistant", "content": response})
 
-    # Generate and display the bot's response
-    with st.chat_message("assistant"):
-        message_placeholder = st.empty()
-        full_response = ""
-
-        try:
-            # Use the client to stream the response
-            response_stream = client.chat_completion(
-                messages=st.session_state.messages,
-                max_tokens=500,
-                stream=True
-            )
-
-            for chunk in response_stream:
-                token = chunk.choices[0].delta.content
-                if token:
-                    full_response += token
-                    message_placeholder.markdown(full_response + "▌")
-
-            message_placeholder.markdown(full_response)
-
-        except BadRequestError:
-            st.error("A 'Bad Request' error occurred. This might be due to an issue with the chat history or the model's input limits. Please try clearing the chat and starting over.")
-        except Exception as e:
-            st.error(f"An unexpected error occurred: {e}")
-
-
-    # Add the bot's response to history ONLY if it is not empty
-    if full_response:
-        st.session_state.messages.append({"role": "assistant", "content": full_response})
+for msg in st.session_state["messages"]:
+    st.write(f"{msg['role'].capitalize()}: {msg['content']}")
