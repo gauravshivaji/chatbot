@@ -1,14 +1,19 @@
 import streamlit as st
 from huggingface_hub import InferenceClient
+from huggingface_hub.errors import BadRequestError
 
 st.title("💬 Hugging Face Chatbot")
 
 # Initialize the InferenceClient with your model and token
-# The token is read from Streamlit's secrets
-client = InferenceClient(
-    model="meta-llama/Llama-3-8B-Instruct",
-    token=st.secrets["HUGGINGFACE_API_KEY"]
-)
+try:
+    client = InferenceClient(
+        model="meta-llama/Llama-3-8B-Instruct",
+        token=st.secrets["HUGGINGFACE_API_KEY"]
+    )
+except Exception:
+    st.error("Please provide a valid Hugging Face API key in your secrets.")
+    st.stop()
+
 
 # Initialize chat history in session state
 if "messages" not in st.session_state:
@@ -30,23 +35,29 @@ if prompt := st.chat_input("What would you like to ask?"):
     with st.chat_message("assistant"):
         message_placeholder = st.empty()
         full_response = ""
-        
-        # Use the client to stream the response
-        # The 'messages' argument should be the chat history
-        response_stream = client.chat_completion(
-            messages=st.session_state.messages,
-            max_tokens=500, # Adjust as needed
-            stream=True
-        )
 
-        for chunk in response_stream:
-            # The actual text is in chunk.choices[0].delta.content
-            token = chunk.choices[0].delta.content
-            if token:
-                full_response += token
-                message_placeholder.markdown(full_response + "▌")
-        
-        message_placeholder.markdown(full_response)
-    
-    # Add the bot's response to history
-    st.session_state.messages.append({"role": "assistant", "content": full_response})
+        try:
+            # Use the client to stream the response
+            response_stream = client.chat_completion(
+                messages=st.session_state.messages,
+                max_tokens=500,
+                stream=True
+            )
+
+            for chunk in response_stream:
+                token = chunk.choices[0].delta.content
+                if token:
+                    full_response += token
+                    message_placeholder.markdown(full_response + "▌")
+
+            message_placeholder.markdown(full_response)
+
+        except BadRequestError:
+            st.error("A 'Bad Request' error occurred. This might be due to an issue with the chat history or the model's input limits. Please try clearing the chat and starting over.")
+        except Exception as e:
+            st.error(f"An unexpected error occurred: {e}")
+
+
+    # Add the bot's response to history ONLY if it is not empty
+    if full_response:
+        st.session_state.messages.append({"role": "assistant", "content": full_response})
