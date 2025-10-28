@@ -1,51 +1,31 @@
-import openai
 import streamlit as st
+from openai import OpenAI
 
-# Set the title for the Streamlit app
-st.title("OpenAI Chatbot 🤖")
+# Initialize client
+client = OpenAI(api_key=st.secrets["api_keys"]["openai"])
 
-# Set the OpenAI API key from Streamlit's secrets
-# This is the recommended way to handle API keys and other secrets.
-openai.api_key = st.secrets["OPENAI_API_KEY"]
+st.title("💬 Chatbot App")
+st.write("Talk to your assistant!")
 
-# Initialize chat history in session state if it doesn't exist
-if "messages" not in st.session_state:
-    st.session_state.messages = []
+# Input box
+user_input = st.text_input("You:", "")
 
-# Display past messages from the chat history
-for message in st.session_state.messages:
-    with st.chat_message(message["role"]):
-        st.markdown(message["content"])
-
-# Get user input from the chat input box
-if prompt := st.chat_input("What is up?"):
-    # Add user's message to the chat history
-    st.session_state.messages.append({"role": "user", "content": prompt})
-
-    # Display user's message in the chat
+if user_input:
+    # Stream response
     with st.chat_message("user"):
-        st.markdown(prompt)
-
-    # Display bot's response in the chat
+        st.markdown(user_input)
     with st.chat_message("assistant"):
         message_placeholder = st.empty()
         full_response = ""
 
-        # Call the OpenAI API with the entire chat history
-        # We use a stream to get the response word by word
-        for response in openai.ChatCompletion.create(
+        stream = client.chat.completions.create(
             model="gpt-3.5-turbo",
-            messages=[{"role": m["role"], "content": m["content"]}
-                      for m in st.session_state.messages],
+            messages=[{"role": "user", "content": user_input}],
             stream=True,
-        ):
-            # Append the new chunk to the full response
-            full_response += response.choices[0].delta.get("content", "")
-            # Display the response as it comes in
-            message_placeholder.markdown(full_response + "▌")
+        )
 
-        # Update the final message in the placeholder
+        for chunk in stream:
+            if chunk.choices[0].delta.get("content"):
+                full_response += chunk.choices[0].delta.content
+                message_placeholder.markdown(full_response + "▌")
         message_placeholder.markdown(full_response)
-
-    # Add the bot's complete response to the chat history
-    st.session_state.messages.append({"role": "assistant", "content": full_response})
