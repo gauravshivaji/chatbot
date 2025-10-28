@@ -28,29 +28,27 @@ except Exception as e:
     st.stop()
 
 
-# --- Function to Query Llama 3 (Corrected for Conversational Task) ---
-def query_llama3_conversational(messages: list) -> str:
+# --- Function to Query Llama 3 (Corrected for Chat Completion) ---
+def query_llama3_chat(messages: list) -> str:
     """
-    Sends the entire conversation history to the Llama 3 model and returns the assistant's reply.
+    Sends the entire conversation history to Llama 3 using the chat completion endpoint.
     """
     try:
-        # <-- KEY CHANGE 1: Use the .conversational() method
-        response_data = client.conversational(
-            messages=messages, # Pass the list of message dictionaries
-            max_new_tokens=1024,
-            do_sample=True,
-            temperature=0.7,
-            top_p=0.95,
+        # <-- KEY CHANGE 1: Use the .chat_completion() method
+        response = client.chat_completion(
+            messages=messages,      # Pass the list of message dictionaries
+            max_tokens=1024,        # Note: parameter is max_tokens, not max_new_tokens
+            stream=False,           # We will handle the full response at once
         )
-        # <-- KEY CHANGE 2: Extract the generated text from the response dictionary
-        # The assistant's reply is in the 'generated_text' key
-        return response_data.get('generated_text', '')
+        # <-- KEY CHANGE 2: Extract the content from the response object
+        return response.choices[0].message.content
     except Exception as e:
         st.error(f"An error occurred while generating the response: {e}", icon="🔥")
-        return "Sorry, I couldn't process your request. The model might be loading or experiencing high traffic."
+        return "Sorry, I couldn't process your request. The model might be busy or still loading."
 
 # --- Chat History Management ---
 if "messages" not in st.session_state:
+    # Llama 3 requires a system prompt for best performance, but for simplicity, we start with the assistant.
     st.session_state.messages = [{"role": "assistant", "content": "Hello! I am the Llama 3 70B model. How can I help you today?"}]
 
 # Display chat messages from history
@@ -68,9 +66,9 @@ if user_prompt := st.chat_input("Ask your question here..."):
         
     with st.chat_message("assistant"):
         with st.spinner("Thinking... (this may take a moment for the 70B model)"):
-            # <-- KEY CHANGE 3: Pass the entire session state messages list
-            response = query_llama3_conversational(st.session_state.messages)
-            st.markdown(response)
+            # <-- KEY CHANGE 3: Call the new function
+            response_content = query_llama3_chat(st.session_state.messages)
+            st.markdown(response_content)
             
     # Add assistant response to chat history
-    st.session_state.messages.append({"role": "assistant", "content": response})
+    st.session_state.messages.append({"role": "assistant", "content": response_content})
