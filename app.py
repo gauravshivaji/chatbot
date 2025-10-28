@@ -1,45 +1,33 @@
-import os
 import streamlit as st
 from transformers import pipeline
 
-# Option A: Use environment variable for API Key
-HF_TOKEN = os.getenv("HUGGINGFACE_API_KEY")
-
-# Option B: Accept API Key from sidebar for development
-with st.sidebar:
-    st.title("🤗 Hugging Face Chatbot")
-    api_key_input = st.text_input("Enter Hugging Face API Key", type="password")
-if api_key_input:
-    HF_TOKEN = api_key_input
-
 st.title("Llama 3 Chatbot (Hugging Face & Streamlit)")
-st.markdown("Talk to Meta-Llama-3-70B-Instruct model via Hugging Face Inference API.")
+st.markdown("Chat with Meta-Llama-3-70B-Instruct! (API key stored securely with Streamlit secrets)")
 
-if not HF_TOKEN:
-    st.warning("Please enter your Hugging Face API key in the sidebar.")
-    st.stop()
+# Access HF API key from Streamlit secrets
+HF_TOKEN = st.secrets["huggingface"]["api_key"]
 
 @st.cache_resource
-def get_pipeline(token):
-    # For hosted inference API, set use_auth_token argument.
+def get_chatbot(token):
     return pipeline(
         "text-generation",
         model="meta-llama/Meta-Llama-3-70B-Instruct",
         use_auth_token=token
     )
 
-chatbot = get_pipeline(HF_TOKEN)
+chatbot = get_chatbot(HF_TOKEN)
 
 if "messages" not in st.session_state:
     st.session_state["messages"] = []
 
-prompt = st.text_input("Ask a question:", "")
+user_input = st.text_input("Ask your question:")
 
-if st.button("Send") and prompt:
-    st.session_state["messages"].append({"role": "user", "content": prompt})
+if st.button("Send") and user_input:
+    st.session_state["messages"].append({"role": "user", "content": user_input})
     with st.spinner("Thinking..."):
-        response = chatbot(prompt, max_new_tokens=256)[0]['generated_text']
+        response = chatbot(user_input, max_new_tokens=256)[0]['generated_text']
     st.session_state["messages"].append({"role": "assistant", "content": response})
 
 for msg in st.session_state["messages"]:
-    st.write(f"{msg['role'].capitalize()}: {msg['content']}")
+    role = "🧑" if msg["role"] == "user" else "🤖"
+    st.write(f"{role} {msg['role'].capitalize()}: {msg['content']}")
