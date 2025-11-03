@@ -10,7 +10,7 @@ st.set_page_config(
 
 # --- App Title and Description ---
 st.title("🤖gurubhai ka jwab ")
-st.caption("charges extra 20rs")
+
 
 # --- Hugging Face API Configuration ---
 try:
